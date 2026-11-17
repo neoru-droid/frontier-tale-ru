@@ -4,7 +4,7 @@
 
 Русский перевод текста и всех достижений для **Frontier Tale**.
 
-**[Скачать FrontierTale-RU-v1.0.zip](https://github.com/neoru-droid/frontier-tale-ru/releases/latest)**
+**[Скачать FrontierTale-RU-v1.1.zip](https://github.com/neoru-droid/frontier-tale-ru/releases/latest)**
 
 ## Установка
 1. Закройте игру, распакуйте архив и запустите `FrontierTale-RU-Setup.exe` -> **«Установить русификатор»** (в настройках игры оставьте язык **English**).

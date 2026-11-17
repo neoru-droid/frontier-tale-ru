@@ -633,7 +633,7 @@ def _zenity_menu(status_text: str) -> str | None:
     res = subprocess.run(
         [
             "zenity", "--list", "--width=620", "--height=360",
-            "--title=Frontier Tale — Русификатор v1.0",
+            "--title=Frontier Tale - Русификатор v1.1",
             f"--text={status_text}",
             "--column=Код", "--column=Действие", "--hide-column=1",
             "install", "Установить / обновить русификатор",

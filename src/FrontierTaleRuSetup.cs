@@ -30,14 +30,15 @@ using Microsoft.Win32;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
 
 namespace FrontierTaleRuSetup
 {
     internal static class Program
     {
         public const int TargetAppId = 4829780;
+        public const string BoostyUrl = "https://boosty.to/cd_tixo";
         public const string SupportUrl = "https://pay.cloudtips.ru/p/240b8760";
         public const string GithubUrl = "https://github.com/neoru-droid/frontier-tale-ru";
 
@@ -264,7 +265,7 @@ namespace FrontierTaleRuSetup
 
         private static void PrintCliHelp()
         {
-            Console.WriteLine("Frontier Tale — Русификатор v1.0 (neoru-droid)");
+            Console.WriteLine("Frontier Tale - Русификатор v1.1 (neoru-droid)");
             Console.WriteLine();
             Console.WriteLine("Использование:");
             Console.WriteLine("  FrontierTale-RU-Setup.exe                        Графическое окно установщика");
@@ -3291,6 +3292,7 @@ namespace FrontierTaleRuSetup
         private TacticalButton _uninstallBtn;
         private TacticalButton _achievementsBtn;
         private TextBox _logBox;
+        private TacticalButton _boostyLinkBtn;
         private TacticalButton _supportLinkBtn;
         private TacticalButton _githubLinkBtn;
 
@@ -3320,7 +3322,7 @@ namespace FrontierTaleRuSetup
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = TacticalTheme.BgDeep;
             ForeColor = TacticalTheme.TextPrimary;
-            Text = "Frontier Tale — Русификатор v1.0";
+            Text = "Frontier Tale - Русификатор v1.1";
             ClientSize = new Size(S(728), S(414));
 
             _winIcon = TacticalTheme.CreateWindowIcon();
@@ -3480,8 +3482,9 @@ namespace FrontierTaleRuSetup
 
             int footerY = S(372);
             int footerH = S(28);
-            int ghW = S(96);
-            int supW = S(178);
+            int ghW = S(88);
+            int boostyW = S(88);
+            int supW = S(168);
 
             _githubLinkBtn = new TacticalButton();
             _githubLinkBtn.Text = "GitHub";
@@ -3492,12 +3495,21 @@ namespace FrontierTaleRuSetup
             _githubLinkBtn.Click += delegate { Program.OpenBrowserUrl(Program.GithubUrl); };
             Controls.Add(_githubLinkBtn);
 
+            _boostyLinkBtn = new TacticalButton();
+            _boostyLinkBtn.Text = "Boosty";
+            _boostyLinkBtn.Font = _fontSmall;
+            _boostyLinkBtn.IsSubtleLink = true;
+            _boostyLinkBtn.CornerRadius = S(5);
+            _boostyLinkBtn.Bounds = new Rectangle(ClientSize.Width - pad - ghW - S(8) - boostyW, footerY, boostyW, footerH);
+            _boostyLinkBtn.Click += delegate { Program.OpenBrowserUrl(Program.BoostyUrl); };
+            Controls.Add(_boostyLinkBtn);
+
             _supportLinkBtn = new TacticalButton();
             _supportLinkBtn.Text = "Поддержать перевод";
             _supportLinkBtn.Font = _fontSmall;
             _supportLinkBtn.IsSubtleLink = true;
             _supportLinkBtn.CornerRadius = S(5);
-            _supportLinkBtn.Bounds = new Rectangle(ClientSize.Width - pad - ghW - S(8) - supW, footerY, supW, footerH);
+            _supportLinkBtn.Bounds = new Rectangle(ClientSize.Width - pad - ghW - S(8) - boostyW - S(8) - supW, footerY, supW, footerH);
             _supportLinkBtn.Click += delegate { Program.OpenBrowserUrl(Program.SupportUrl); };
             Controls.Add(_supportLinkBtn);
         }
@@ -3946,7 +3958,7 @@ namespace FrontierTaleRuSetup
             Rectangle leftFooter = new Rectangle(S(22), S(372), S(260), S(28));
             TextRenderer.DrawText(
                 g,
-                "v1.0 · neoru-droid",
+                "v1.1 · neoru-droid",
                 _fontSmall,
                 leftFooter,
                 TacticalTheme.TextDim,
