@@ -632,12 +632,11 @@ def format_achievements_report(bundle: PayloadBundle, steam_dir: Path | None) ->
 def _zenity_menu(status_text: str) -> str | None:
     res = subprocess.run(
         [
-            "zenity", "--list", "--width=620", "--height=360",
+            "zenity", "--list", "--width=620", "--height=320",
             "--title=Frontier Tale - Русификатор v1.1",
             f"--text={status_text}",
             "--column=Код", "--column=Действие", "--hide-column=1",
             "install", "Установить / обновить русификатор",
-            "achievements", "Посмотреть прогресс 40 достижений Steam",
             "uninstall", "Вернуть оригинальные файлы игры",
             "exit", "Выход",
         ],
@@ -654,17 +653,17 @@ def _run_interactive(bundle: PayloadBundle, game_dir: Path | None, steam_dir: Pa
             return 2
         assert game_dir is not None
         state = "Установлен" if is_installed(game_dir) else "Не установлен"
-        header = f"Папка игры: {game_dir}\nСтатус русификатора: {state}"
+        header = f"Папка игры: {game_dir}\nСтатус русификатора: {state}\nBoosty: https://boosty.to/cd_tixo"
         choice = _zenity_menu(header) if has_zenity else _tty_menu(header)
-        if choice in (None, "", "exit", "4"):
+        if choice in (None, "", "exit", "3"):
             return 0
         _dispatch_choice(choice, bundle, game_dir, steam_dir, bool(has_zenity))
 
 
 def _tty_menu(header: str) -> str:
     print("\n" + "=" * 60 + "\n" + header + "\n" + "-" * 60)
-    print("1) Установить русификатор\n2) Достижения Steam (40)\n3) Вернуть оригинал\n4) Выход")
-    return input("Выберите пункт [1-4]: ").strip()
+    print("1) Установить русификатор\n2) Вернуть оригинал\n3) Выход")
+    return input("Выберите пункт [1-3]: ").strip()
 
 
 def _notify(msg: str, use_zenity: bool) -> None:
@@ -680,16 +679,7 @@ def _dispatch_choice(
     try:
         if choice in ("install", "1"):
             _notify("\n".join(install_localization(bundle, game_dir, steam_dir)), use_zenity)
-        elif choice in ("achievements", "2"):
-            rep = format_achievements_report(bundle, steam_dir)
-            if use_zenity:
-                subprocess.run(
-                    ["zenity", "--text-info", "--width=680", "--height=540", "--title=Достижения Steam"],
-                    input=rep, text=True, check=False,
-                )
-            else:
-                print("\n" + rep)
-        elif choice in ("uninstall", "3"):
+        elif choice in ("uninstall", "2"):
             _notify("\n".join(uninstall_localization(game_dir, steam_dir)), use_zenity)
     except Exception as exc:
         _notify(f"Ошибка: {exc}", use_zenity)

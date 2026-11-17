@@ -3268,7 +3268,6 @@ namespace FrontierTaleRuSetup
         private Color _statusBadgeFg = TacticalTheme.TextSecondary;
         private Color _statusBadgeBg = TacticalTheme.RecessedBg;
         private Color _statusBadgeBorder = TacticalTheme.BorderCrisp;
-        private int _unlockedCount;
 
         private Font _fontBrand;
         private Font _fontBadge;
@@ -3290,7 +3289,6 @@ namespace FrontierTaleRuSetup
         private TacticalButton _browseBtn;
         private TacticalButton _installBtn;
         private TacticalButton _uninstallBtn;
-        private TacticalButton _achievementsBtn;
         private TextBox _logBox;
         private TacticalButton _boostyLinkBtn;
         private TacticalButton _supportLinkBtn;
@@ -3437,10 +3435,9 @@ namespace FrontierTaleRuSetup
 
             int btnY = S(206);
             int btnH = S(44);
-            int gap = S(10);
-            int installW = S(252);
-            int restoreW = S(192);
-            int achW = contentW - installW - restoreW - gap * 2;
+            int gap = S(12);
+            int restoreW = S(240);
+            int installW = contentW - restoreW - gap;
 
             _installBtn = new TacticalButton();
             _installBtn.Text = "Установить русификатор";
@@ -3458,14 +3455,6 @@ namespace FrontierTaleRuSetup
             _uninstallBtn.Bounds = new Rectangle(pad + installW + gap, btnY, restoreW, btnH);
             _uninstallBtn.Click += OnUninstallClicked;
             Controls.Add(_uninstallBtn);
-
-            _achievementsBtn = new TacticalButton();
-            _achievementsBtn.Text = "Достижения (0 / 40)";
-            _achievementsBtn.Font = _fontSecondaryBtn;
-            _achievementsBtn.CornerRadius = S(6);
-            _achievementsBtn.Bounds = new Rectangle(pad + installW + gap + restoreW + gap, btnY, achW, btnH);
-            _achievementsBtn.Click += OnAchievementsClicked;
-            Controls.Add(_achievementsBtn);
 
             _logCardRect = new Rectangle(pad, S(264), contentW, S(96));
             _logBox = new TextBox();
@@ -3553,10 +3542,6 @@ namespace FrontierTaleRuSetup
                 _steamDir = SteamLocator.DetectSteamDirectory(null, currentGameDir);
             }
 
-            List<UserAchievementProfile> profiles = SteamUserStatsReader.LoadProfiles(_steamDir, _payload.Achievements);
-            _unlockedCount = profiles.Count > 0 ? profiles[0].UnlockedCount : 0;
-            _achievementsBtn.Text = string.Format(CultureInfo.InvariantCulture, "Достижения ({0} / {1})", _unlockedCount, _payload.Achievements.Count);
-
             bool hasBackup = validGame && BackupManifestStore.HasValidBackup(currentGameDir);
             bool installed = validGame && InstallerService.IsRussifierInstalled(currentGameDir);
 
@@ -3585,7 +3570,6 @@ namespace FrontierTaleRuSetup
             _installBtn.Enabled = !_isBusy && validGame;
             _uninstallBtn.Enabled = !_isBusy && hasBackup;
             _browseBtn.Enabled = !_isBusy;
-            _achievementsBtn.Enabled = !_isBusy;
             Invalidate();
         }
 
@@ -3781,15 +3765,6 @@ namespace FrontierTaleRuSetup
                     TryElevateAndClose("--uac-install", gameDir, steamDir);
                 }
             }
-        }
-
-        private void OnAchievementsClicked(object sender, EventArgs e)
-        {
-            using (AchievementsForm dlg = new AchievementsForm(_payload, _steamDir, false, _appBaseDir, _pathBox.Text))
-            {
-                dlg.ShowDialog(this);
-            }
-            RefreshUiState();
         }
 
         private void RunWorkerAction(string startHeader, Action<Action<string>> work, Action<Exception> onCompleted)
