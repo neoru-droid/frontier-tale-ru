@@ -4,7 +4,7 @@
 
 Русский перевод текста и всех достижений для **Frontier Tale**.
 
-**[Скачать FrontierTale-RU-v1.1.zip](https://github.com/neoru-droid/frontier-tale-ru/releases/latest)**
+**[Скачать FrontierTale-RU-v1.1.zip](https://github.com/neoru-droid/frontier-tale-ru/releases/latest)** *(актуально для патча `2.1.0`)*
 
 ## Установка
 1. Закройте игру, распакуйте архив и запустите `FrontierTale-RU-Setup.exe` -> **«Установить русификатор»** (в настройках игры оставьте язык **English**).
@@ -32,7 +32,7 @@
 - **[Boosty](https://boosty.to/cd_tixo)** (все релизы и выбор следующих игр)
 - **[Чаевые через CloudTips (СБП / карта)](https://pay.cloudtips.ru/p/240b8760)**
 
-Перевод сделан с нейросетью и вычитан в игре. Найдёте опечатку - пишите в [Issues](https://github.com/neoru-droid/frontier-tale-ru/issues), поправлю.
+Перевод сделан с помощью нейросети и проверен в игре. Найдёте опечатку или косяк - пишите в [Issues](https://github.com/neoru-droid/frontier-tale-ru/issues), поправлю.
 
 ## Другие переводы
 - [We March as One](https://github.com/neoru-droid/we-march-as-one-ru)
