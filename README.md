@@ -1,12 +1,12 @@
-# Frontier Tale: Русификатор
+# Frontier Tale · Русификатор
 
-![Frontier Tale: Русификатор](docs/screenshots/cover_wide.png)
+Сюжет, диалоги, предметы, рецепты и задания на русском языке.
 
-Русский перевод текста для **Frontier Tale** (сюжет, диалоги, предметы, крафт, постройки и задания).
+**[Скачать перевод v1.1 (ZIP)](https://github.com/neoru-droid/frontier-tale-ru/releases/download/v1.1.0/FrontierTale-RU-v1.1.zip)** · [Как установить](#установка)
 
-**[Скачать FrontierTale-RU-v1.1.zip](https://github.com/neoru-droid/frontier-tale-ru/releases/latest)** *(актуально для патча `2.1.0`)*
+Проверено на патче 2.1.0. Совместимость с 2.1.4 уточняется.
 
-[Все версии](https://github.com/neoru-droid/frontier-tale-ru/releases) · [Руководство в Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=3840837132) · [Тема в Steam](https://steamcommunity.com/app/4829780/discussions/0/563673525951871530/) · [Boosty](https://boosty.to/cd_tixo) · [Все переводы автора](https://github.com/neoru-droid)
+![Диалог Мии на русском языке](docs/screenshots/cover_wide.png)
 
 ## Установка
 1. Закройте игру, распакуйте архив и запустите `FrontierTale-RU-Setup.exe` -> **«Установить русификатор»** (в настройках игры оставьте язык **English**).
@@ -17,21 +17,36 @@
 
 ## Скриншоты
 
-| Главное меню | Выбор сложности |
-| :---: | :---: |
-| ![Главное меню](docs/screenshots/guide_1_main_menu.png) | ![Выбор сложности](docs/screenshots/guide_2_difficulty.png) |
+<details>
+<summary>Открыть игровые кадры</summary>
 
-| Диалог | Инвентарь |
-| :---: | :---: |
-| ![Диалог](docs/screenshots/guide_3_dialogue.png) | ![Инвентарь](docs/screenshots/guide_4_gameplay_ui.png) |
+**Главное меню**
 
-| Установщик |
-| :---: |
-| ![Установщик](docs/screenshots/guide_6_installer.png) |
+![Главное меню](docs/screenshots/guide_1_main_menu.png)
+
+**Выбор сложности**
+
+![Выбор сложности](docs/screenshots/guide_2_difficulty.png)
+
+**Диалог**
+
+![Диалог](docs/screenshots/guide_3_dialogue.png)
+
+**Инвентарь**
+
+![Инвентарь](docs/screenshots/guide_4_gameplay_ui.png)
+
+**Установщик**
+
+![Установщик](docs/screenshots/guide_6_installer.png)
+
+</details>
 
 ## История обновлений
 - **[v1.1](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.1.0)** - адаптация под патч игры `2.1.0`, кнопка Boosty в установщике.
 - **[v1.0](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.0.0)** - первый релиз русификатора текста для Windows и Steam Deck.
+
+[Все версии](https://github.com/neoru-droid/frontier-tale-ru/releases) · [Руководство в Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=3840837132) · [Тема в Steam](https://steamcommunity.com/app/4829780/discussions/0/563673525951871530/)
 
 <a id="support"></a>
 ## Поддержать
