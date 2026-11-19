@@ -12,7 +12,6 @@ import os
 from pathlib import Path
 import re
 import shutil
-import struct
 import subprocess
 import sys
 from typing import Any, Sequence
@@ -33,88 +32,20 @@ TAG_RE = re.compile(r"<[^>]+>")
 CYRILLIC_WORD_RE = re.compile(r"[А-Яа-яЁё]{3,}")
 VDF_PATH_RE = re.compile(r'"path"\s+"([^"]+)"')
 ACF_DIR_RE = re.compile(r'"installdir"\s+"([^"]+)"')
-STATS_FILE_RE = re.compile(r"^UserGameStats_(\d+)_4829780\.bin$", re.IGNORECASE)
-
-KV_MAP = 0x00
-KV_STR = 0x01
-KV_INT32 = 0x02
-KV_WSTRING = 0x05
-KV_END = 0x08
-KV_FIXED_WIDTHS = {0x02: 4, 0x03: 4, 0x04: 4, 0x06: 4, 0x07: 8, 0x0A: 8}
-
-
-@dataclass(frozen=True)
-class AchievementDef:
-    order: int
-    stat_id: int
-    bit: int
-    ach_id: str
-    name_ru: str
-    desc_ru: str
-
-
 @dataclass(frozen=True)
 class PayloadBundle:
     version: str
     app_id: int
     lang: dict[str, str]
-    achievements: tuple[AchievementDef, ...]
-
-
-@dataclass
-class KvNode:
-    tag: int
-    raw_key: bytes
-    children: list[KvNode]
-    raw_bytes: bytes = b""
-
-    @property
-    def key(self) -> str:
-        return self.raw_key.decode("utf-8", errors="replace")
-
-
-@dataclass
-class ProfileProgress:
-    label: str
-    bitmasks: dict[int, int]
-    unlock_times: dict[str, int]
-    unlocked_count: int
-
-    def is_unlocked(self, stat_id: int, bit: int) -> bool:
-        mask = self.bitmasks.get(stat_id, 0)
-        return 0 <= bit < 32 and bool((mask >> bit) & 1)
-
-    def format_status(self, stat_id: int, bit: int) -> str:
-        if not self.is_unlocked(stat_id, bit):
-            return "Не получено"
-        ts = self.unlock_times.get(f"{stat_id}:{bit}", 0)
-        if ts > 0:
-            dt = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone()
-            return f"Открыто {dt.strftime('%d.%m.%Y в %H:%M')}"
-        return "Открыто в Steam"
-
-
 def sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
 def _parse_bundle_dict(root: dict[str, Any]) -> PayloadBundle | None:
-    if root.get("app_id") != TARGET_APP_ID or "lang" not in root or "achievements" not in root:
+    if root.get("app_id") != TARGET_APP_ID or "lang" not in root:
         return None
-    achs = [
-        AchievementDef(
-            order=int(a.get("order", i)),
-            stat_id=int(a.get("stat_id", 0)),
-            bit=int(a.get("bit", 0)),
-            ach_id=str(a.get("id", a.get("api_name", ""))),
-            name_ru=str(a.get("name_ru", a.get("ru_name", ""))),
-            desc_ru=str(a.get("desc_ru", a.get("ru_desc", ""))),
-        )
-        for i, a in enumerate(root["achievements"])
-    ]
-    achs.sort(key=lambda x: x.order)
     lang = {str(k): str(v) for k, v in dict(root["lang"]).items()}
-    return PayloadBundle(str(root.get("version", "1.0.0")), TARGET_APP_ID, lang, tuple(achs))
+    return PayloadBundle(str(root.get("version", "1.0.0")), TARGET_APP_ID, lang)
 
 
 def _try_gunzip_at(raw: bytes, offset: int) -> PayloadBundle | None:
@@ -273,163 +204,6 @@ def merge_en_json_bytes(clean_en_bytes: bytes, ru_map: dict[str, str]) -> tuple[
     return out, translated, preserved
 
 
-def _read_cstr(buf: bytes, pos: int) -> tuple[bytes, int]:
-    end = buf.find(0, pos)
-    if end < 0:
-        raise ValueError("Corrupted binary VDF string.")
-    return buf[pos:end], end + 1
-
-
-def _parse_kv_list(buf: bytes, pos: int, nested: bool) -> tuple[list[KvNode], int]:
-    items: list[KvNode] = []
-    while pos < len(buf):
-        tag = buf[pos]
-        pos += 1
-        if tag == KV_END:
-            return items, pos
-        rkey, pos = _read_cstr(buf, pos)
-        if tag == KV_MAP:
-            ch, pos = _parse_kv_list(buf, pos, True)
-            items.append(KvNode(tag, rkey, ch))
-        elif tag == KV_STR:
-            rval, pos = _read_cstr(buf, pos)
-            items.append(KvNode(tag, rkey, [], rval))
-        else:
-            w = KV_FIXED_WIDTHS.get(tag)
-            if w is None or pos + w > len(buf):
-                raise ValueError(f"Unsupported KV tag {tag}")
-            items.append(KvNode(tag, rkey, [], buf[pos : pos + w]))
-            pos += w
-    if nested:
-        raise ValueError("Truncated binary VDF map.")
-    return items, pos
-
-
-def parse_kv(raw: bytes) -> list[KvNode]:
-    nodes, _ = _parse_kv_list(raw, 0, False)
-    return nodes
-
-
-def _write_kv_list(nodes: Sequence[KvNode], out: bytearray) -> None:
-    for n in nodes:
-        out.append(n.tag)
-        out.extend(n.raw_key + b"\x00")
-        if n.tag == KV_MAP:
-            _write_kv_list(n.children, out)
-        elif n.tag == KV_STR:
-            out.extend(n.raw_bytes + b"\x00")
-        else:
-            out.extend(n.raw_bytes)
-    out.append(KV_END)
-
-
-def dump_kv(nodes: Sequence[KvNode]) -> bytes:
-    out = bytearray()
-    _write_kv_list(nodes, out)
-    return bytes(out)
-
-
-def _find_child(nodes: Sequence[KvNode], key: str, tag: int) -> KvNode | None:
-    low = key.lower()
-    for n in nodes:
-        if n.tag == tag and n.key.lower() == low:
-            return n
-    return None
-
-
-def _upsert_str(nodes: list[KvNode], key: str, value: str) -> None:
-    enc = value.encode("utf-8")
-    for n in nodes:
-        if n.tag == KV_STR and n.key == key:
-            n.raw_bytes = enc
-            return
-    nodes.append(KvNode(KV_STR, key.encode("utf-8"), [], enc))
-
-
-def _resolve_bit_maps(
-    bit_node: KvNode, by_id: dict[str, AchievementDef]
-) -> tuple[AchievementDef, KvNode, KvNode] | None:
-    name_node = _find_child(bit_node.children, "name", KV_STR)
-    ach = by_id.get(name_node.raw_bytes.decode("utf-8", "replace")) if name_node else None
-    disp = _find_child(bit_node.children, "display", KV_MAP) if ach else None
-    nmap = _find_child(disp.children, "name", KV_MAP) if disp else None
-    dmap = _find_child(disp.children, "desc", KV_MAP) if disp else None
-    return (ach, nmap, dmap) if (ach and nmap and dmap) else None
-
-
-def _patch_single_bit(bit_node: KvNode, by_id: dict[str, AchievementDef]) -> bool:
-    resolved = _resolve_bit_maps(bit_node, by_id)
-    if resolved is None:
-        return False
-    ach, nmap, dmap = resolved
-    en_d = _find_child(dmap.children, "english", KV_STR)
-    suffix = "\n" if (en_d and en_d.raw_bytes.endswith(b"\n")) else ""
-    desc_txt = ach.desc_ru.strip() + suffix
-    for lang_k in ("english", "russian"):
-        _upsert_str(nmap.children, lang_k, ach.name_ru.strip())
-        _upsert_str(dmap.children, lang_k, desc_txt)
-    return True
-
-
-def patch_schema(raw_schema: bytes, achs: Sequence[AchievementDef]) -> tuple[bytes, int]:
-    root = parse_kv(raw_schema)
-    stats = _find_child(root[0].children, "stats", KV_MAP) if root else None
-    if not stats:
-        raise ValueError("Missing stats block in achievement schema.")
-    by_id = {a.ach_id: a for a in achs}
-    patched = 0
-    for st in stats.children:
-        bits = _find_child(st.children, "bits", KV_MAP) if st.tag == KV_MAP else None
-        for bit_node in bits.children if bits else ():
-            if bit_node.tag == KV_MAP and _patch_single_bit(bit_node, by_id):
-                patched += 1
-    return dump_kv(root), patched
-
-
-def _extract_ach_times(sid: int, tnode: KvNode | None, times: dict[str, int]) -> None:
-    for ch in tnode.children if tnode else ():
-        if ch.tag == KV_INT32 and len(ch.raw_bytes) == 4 and ch.key.isdigit():
-            (times[f"{sid}:{int(ch.key)}"],) = struct.unpack("<I", ch.raw_bytes)
-
-
-def _parse_stat_group(st: KvNode, bitmasks: dict[int, int], times: dict[str, int]) -> None:
-    if st.tag != KV_MAP or not st.key.isdigit():
-        return
-    sid = int(st.key)
-    dnode = _find_child(st.children, "data", KV_INT32)
-    if dnode and len(dnode.raw_bytes) == 4:
-        (bitmasks[sid],) = struct.unpack("<I", dnode.raw_bytes)
-    _extract_ach_times(sid, _find_child(st.children, "AchievementTimes", KV_MAP), times)
-
-
-def _parse_profile_file(fpath: Path, idx: int, achs: Sequence[AchievementDef]) -> ProfileProgress | None:
-    try:
-        root = parse_kv(fpath.read_bytes())
-        cache = _find_child(root, "cache", KV_MAP) or (root[0] if root else None)
-        bitmasks: dict[int, int] = {}
-        times: dict[str, int] = {}
-        for st in cache.children if cache else ():
-            _parse_stat_group(st, bitmasks, times)
-        tmp = ProfileProgress("", bitmasks, times, 0)
-        cnt = sum(1 for a in achs if tmp.is_unlocked(a.stat_id, a.bit))
-        return ProfileProgress(f"Профиль #{idx} ({cnt}/{len(achs)})", bitmasks, times, cnt)
-    except Exception:
-        return None
-
-
-def read_profiles(steam_dir: Path | None, achs: Sequence[AchievementDef]) -> list[ProfileProgress]:
-    stats_dir = (steam_dir / "appcache" / "stats") if steam_dir else None
-    if not (stats_dir and stats_dir.is_dir()):
-        return []
-    files = sorted(
-        (f for f in stats_dir.iterdir() if STATS_FILE_RE.match(f.name)),
-        key=lambda p: p.stat().st_mtime,
-        reverse=True,
-    )
-    parsed = [_parse_profile_file(fp, i, achs) for i, fp in enumerate(files, 1)]
-    return [p for p in parsed if p is not None]
-
-
 def _load_manifest(manifest_path: Path) -> dict[str, Any] | None:
     if not manifest_path.is_file():
         return None
@@ -520,7 +294,7 @@ def install_localization(bundle: PayloadBundle, game_dir: Path, steam_dir: Path 
         "existed_originally": True,
     }]
 
-    schema_rec = _install_schema_if_present(bundle, steam_dir, backup_root, prev, logs)
+    schema_rec = next((r for r in (prev or {}).get("files", []) if r.get("target_kind") == "steam_schema"), None)
     if schema_rec:
         files_list.append(schema_rec)
 
@@ -529,65 +303,11 @@ def install_localization(bundle: PayloadBundle, game_dir: Path, steam_dir: Path 
         "installer_version": bundle.version,
         "app_id": bundle.app_id,
         "updated_utc": datetime.now(timezone.utc).isoformat(),
-        "steam_schema_source_path": schema_rec.get("source_path") if schema_rec else None,
+        "steam_schema_source_path": (prev or {}).get("steam_schema_source_path") if schema_rec else None,
         "files": files_list,
     }
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return logs
-
-
-def _write_patched_schema(
-    schema_path: Path,
-    b_path: Path,
-    patched: bytes,
-    prev_s: dict[str, Any] | None,
-    logs: list[str],
-) -> bool:
-    try:
-        schema_path.write_bytes(patched)
-        return True
-    except OSError:
-        if not prev_s and b_path.is_file():
-            b_path.unlink(missing_ok=True)
-        logs.append(f"Примечание: нет прав записи схемы Steam ({schema_path}); текст игры установлен.")
-        return False
-
-
-def _ensure_schema_backup(live: bytes, b_path: Path, prev_s: dict[str, Any] | None) -> bytes:
-    known_hashes = (prev_s.get("orig_sha256"), prev_s.get("patched_sha256")) if prev_s else ()
-    if not (prev_s and b_path.is_file() and sha256_hex(live) in known_hashes):
-        b_path.parent.mkdir(parents=True, exist_ok=True)
-        b_path.write_bytes(live)
-    return b_path.read_bytes()
-
-
-def _install_schema_if_present(
-    bundle: PayloadBundle,
-    steam_dir: Path | None,
-    backup_root: Path,
-    prev: dict[str, Any] | None,
-    logs: list[str],
-) -> dict[str, Any] | None:
-    schema_path = (steam_dir / "appcache" / "stats" / SCHEMA_FILE_NAME) if steam_dir else None
-    if not (schema_path and schema_path.is_file()):
-        return None
-    b_rel = f"steam_stats/{SCHEMA_FILE_NAME}"
-    b_path = backup_root / b_rel
-    prev_s = next((r for r in (prev or {}).get("files", ()) if r.get("target_kind") == "steam_schema"), None)
-    orig_bytes = _ensure_schema_backup(schema_path.read_bytes(), b_path, prev_s)
-    patched, cnt = patch_schema(orig_bytes, bundle.achievements)
-    if not _write_patched_schema(schema_path, b_path, patched, prev_s, logs):
-        return prev_s
-    logs.append(f"Переведено достижений Steam: {cnt} из {len(bundle.achievements)}.")
-    return {
-        "target_kind": "steam_schema",
-        "rel_path": SCHEMA_FILE_NAME,
-        "backup_rel_path": b_rel,
-        "orig_sha256": sha256_hex(orig_bytes),
-        "patched_sha256": sha256_hex(patched),
-        "existed_originally": True,
-        "source_path": str(schema_path),
-    }
 
 
 def uninstall_localization(game_dir: Path, steam_dir: Path | None) -> list[str]:
@@ -617,23 +337,11 @@ def uninstall_localization(game_dir: Path, steam_dir: Path | None) -> list[str]:
     return logs
 
 
-def format_achievements_report(bundle: PayloadBundle, steam_dir: Path | None) -> str:
-    profs = read_profiles(steam_dir, bundle.achievements)
-    active = profs[0] if profs else None
-    unlocked = active.unlocked_count if active else 0
-    lines = [f"Достижения Frontier Tale: открыто {unlocked} из {len(bundle.achievements)}", ""]
-    for a in bundle.achievements:
-        mark = "[✓]" if (active and active.is_unlocked(a.stat_id, a.bit)) else "[ ]"
-        status = active.format_status(a.stat_id, a.bit) if active else "Не получено"
-        lines.append(f"{mark} {a.name_ru} — {status}\n    {a.desc_ru}")
-    return "\n".join(lines)
-
-
 def _zenity_menu(status_text: str) -> str | None:
     res = subprocess.run(
         [
             "zenity", "--list", "--width=620", "--height=320",
-            "--title=Frontier Tale - Русификатор v1.1",
+            "--title=Frontier Tale - Русификатор v1.2",
             f"--text={status_text}",
             "--column=Код", "--column=Действие", "--hide-column=1",
             "install", "Установить / обновить русификатор",
@@ -691,7 +399,6 @@ def build_arg_parser() -> argparse.ArgumentParser:
     grp.add_argument("--status", action="store_true")
     grp.add_argument("--install", action="store_true")
     grp.add_argument("--uninstall", action="store_true")
-    grp.add_argument("--achievements", action="store_true")
     p.add_argument("--game-dir", type=Path, default=None)
     p.add_argument("--steam-dir", type=Path, default=None)
     p.add_argument("--payload", type=Path, default=None)
@@ -699,13 +406,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def _run_status(bundle: PayloadBundle, game_dir: Path | None, steam_dir: Path | None) -> int:
-    profs = read_profiles(steam_dir, bundle.achievements)
-    unlocked = profs[0].unlocked_count if profs else 0
     valid = is_valid_game_dir(game_dir)
     print(f"GameDir: {game_dir if valid else 'NOT_FOUND'}")
     print(f"SteamDir: {steam_dir or 'NOT_FOUND'}")
     print(f"Installed: {'true' if (valid and game_dir and is_installed(game_dir)) else 'false'}")
-    print(f"AchievementsUnlocked: {unlocked}/{len(bundle.achievements)}")
     return 0 if valid else 2
 
 
@@ -729,9 +433,6 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.status:
         return _run_status(bundle, game_dir, steam_dir)
-    if args.achievements:
-        print(format_achievements_report(bundle, steam_dir))
-        return 0
     if args.install or args.uninstall:
         return _run_mutating_cli(bool(args.install), bundle, game_dir, steam_dir)
     return _run_interactive(bundle, game_dir, steam_dir)

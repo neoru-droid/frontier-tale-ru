@@ -2,11 +2,11 @@
 
 Сюжет, диалоги, предметы, рецепты и задания на русском языке.
 
-**[Скачать перевод v1.1 (ZIP)](https://github.com/neoru-droid/frontier-tale-ru/releases/download/v1.1.0/FrontierTale-RU-v1.1.zip)** · [Как установить](#установка)
+**[Скачать перевод v1.2 (ZIP)](https://github.com/neoru-droid/frontier-tale-ru/releases/download/v1.2.0/FrontierTale-RU-v1.2.zip)** · [Как установить](#установка)
 
-Проверено на патче 2.1.0. Совместимость с 2.1.4 уточняется.
+Проверено на Frontier Tale 2.1.5 (сборка Steam 26751033).
 
-![Диалог Мии на русском языке](docs/screenshots/cover_wide.png)
+![Frontier Tale · Русификатор](docs/screenshots/cover_wide.png)
 
 ## Установка
 1. Закройте игру, распакуйте архив и запустите `FrontierTale-RU-Setup.exe` -> **«Установить русификатор»** (в настройках игры оставьте язык **English**).
@@ -36,13 +36,10 @@
 
 ![Инвентарь](docs/screenshots/guide_4_gameplay_ui.png)
 
-**Установщик**
-
-![Установщик](docs/screenshots/guide_6_installer.png)
-
 </details>
 
 ## История обновлений
+- **[v1.2](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.2.0)** — перевод для 2.1.5. Обновлены подписи мини-карты, описания жилищ и сообщения о восстановлении ресурсов.
 - **[v1.1](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.1.0)** - адаптация под патч игры `2.1.0`, кнопка Boosty в установщике.
 - **[v1.0](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.0.0)** - первый релиз русификатора текста для Windows и Steam Deck.
 
