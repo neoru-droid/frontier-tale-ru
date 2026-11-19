@@ -39,7 +39,7 @@
 </details>
 
 ## История обновлений
-- **[v1.2](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.2.0)** — перевод для 2.1.5. Обновлены подписи мини-карты, описания жилищ и сообщения о восстановлении ресурсов.
+- **[v1.2](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.2.0)** - перевод для 2.1.5. Обновлены подписи мини-карты, описания жилищ и сообщения о восстановлении ресурсов.
 - **[v1.1](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.1.0)** - адаптация под патч игры `2.1.0`, кнопка Boosty в установщике.
 - **[v1.0](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.0.0)** - первый релиз русификатора текста для Windows и Steam Deck.
 
