@@ -1,17 +1,18 @@
 # Frontier Tale · Русификатор
 
-Сюжет, диалоги, предметы, рецепты и задания на русском языке.
+Сюжет, диалоги, предметы, рецепты, подписи мини-карты и задания на русском языке без обрезки строк.
 
-**[Скачать перевод v1.2 (ZIP)](https://github.com/neoru-droid/frontier-tale-ru/releases/download/v1.2.0/FrontierTale-RU-v1.2.zip)** · [Как установить](#установка)
+- **[Скачать перевод v1.2 (ZIP)](https://github.com/neoru-droid/frontier-tale-ru/releases/download/v1.2.0/FrontierTale-RU-v1.2.zip)** · [Как установить](#установка)
+- **[Страница релиза на Boosty (бесплатно, без регистрации)](https://boosty.to/cd_tixo/posts/486ebb53-422d-4023-9da7-b1fdbc0b2a7f)**
 
-Проверено на Frontier Tale 2.1.5 (сборка Steam 26751033).
+Проверено на Frontier Tale 2.1.5 (сборка Steam `26751033`) для **Windows** и **Steam Deck / Linux**. Достижения Steam продолжают открываться как обычно, а кнопка удаления в любой момент возвращает чистую оригинальную игру.
 
 ![Frontier Tale · Русификатор](docs/screenshots/cover_wide.png)
 
 ## Установка
 1. Закройте игру, распакуйте архив и запустите `FrontierTale-RU-Setup.exe` -> **«Установить русификатор»** (в настройках игры оставьте язык **English**).
-2. **Steam Deck / Linux:** распакуйте архив и запустите `sh install-steamdeck.sh` рядом с `.exe`.
-3. Кнопка **«Вернуть оригинал»** удаляет перевод. После обновлений игры запустите установку повторно.
+2. **Steam Deck / Linux:** распакуйте все файлы архива в одну папку и выполните `sh install-steamdeck.sh` рядом с `.exe`.
+3. Кнопка **«Вернуть оригинал»** удаляет перевод в один клик. После обновлений игры запустите установку повторно.
 
 *(Окно SmartScreen на Windows: «Подробнее» -> «Выполнить в любом случае».)*
 
@@ -47,12 +48,14 @@
 
 <a id="support"></a>
 ## Поддержать
-- **[Boosty](https://boosty.to/cd_tixo)** (все релизы и выбор следующих игр)
-- **[Чаевые через CloudTips (СБП / карта)](https://pay.cloudtips.ru/p/240b8760)**
+- **[Каталог релизов на Boosty](https://boosty.to/cd_tixo/posts/2a55d7e9-0f53-4d93-9f66-280981158dec)** (все бесплатные выпуски и обновления)
+- **[Разовые чаевые через CloudTips (СБП / карта)](https://pay.cloudtips.ru/p/240b8760)**
 
 Перевод сделан с помощью нейросети и проверен в игре. Найдёте опечатку или косяк - пишите в [Issues](https://github.com/neoru-droid/frontier-tale-ru/issues), поправлю.
 
 ## Другие переводы
+- [Playrooms](https://github.com/neoru-droid/playrooms-ru)
+- [Deleted Wiki: Clean Up the Lost Files](https://github.com/neoru-droid/deleted-wiki-ru)
 - [We March as One](https://github.com/neoru-droid/we-march-as-one-ru)
 - [Zombies Aren't Real](https://github.com/neoru-droid/zombies-arent-real-ru)
 
