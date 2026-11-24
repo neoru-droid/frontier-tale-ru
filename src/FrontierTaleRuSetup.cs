@@ -21,17 +21,17 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyTitle("Frontier Tale — Русификатор")]
+[assembly: AssemblyTitle("Frontier Tale - Русификатор")]
 [assembly: AssemblyDescription("Установщик русификатора текста для Frontier Tale")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("neoru-droid")]
-[assembly: AssemblyProduct("Frontier Tale — Русификатор")]
+[assembly: AssemblyProduct("Frontier Tale - Русификатор")]
 [assembly: AssemblyCopyright("Copyright (c) 2026 neoru-droid")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
-[assembly: AssemblyVersion("1.2.0.0")]
-[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyFileVersion("1.3.0.0")]
 
 namespace FrontierTaleRuSetup
 {
@@ -104,7 +104,7 @@ namespace FrontierTaleRuSetup
             {
                 MessageBox.Show(
                     "Не удалось загрузить встроенные ресурсы русификатора:\n" + ex.Message,
-                    "Frontier Tale — Ошибка",
+                    "Frontier Tale - Ошибка",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
                 return 1;
@@ -147,13 +147,7 @@ namespace FrontierTaleRuSetup
                     {
                         steamDir = SteamLocator.DetectSteamDirectory(null, gameDir);
                     }
-                    string skippedSchema;
-                    InstallerService.Uninstall(gameDir, steamDir, Console.WriteLine, out skippedSchema);
-                    if (!string.IsNullOrEmpty(skippedSchema))
-                    {
-                        Console.Error.WriteLine("ОШИБКА: Схема достижений Steam (" + skippedSchema + ") защищена от записи. Запустите --uninstall от имени администратора для полного завершения отката.");
-                        return 1;
-                    }
+                    InstallerService.Uninstall(gameDir, steamDir, Console.WriteLine);
                     return 0;
                 }
                 return 1;
@@ -259,7 +253,7 @@ namespace FrontierTaleRuSetup
 
         private static void PrintCliHelp()
         {
-            Console.WriteLine("Frontier Tale - Русификатор v1.2 (neoru-droid)");
+            Console.WriteLine("Frontier Tale - Русификатор v1.3 (neoru-droid)");
             Console.WriteLine();
             Console.WriteLine("Использование:");
             Console.WriteLine("  FrontierTale-RU-Setup.exe                        Графическое окно установщика");
@@ -1523,27 +1517,6 @@ namespace FrontierTaleRuSetup
             return false;
         }
 
-        public static bool NeedsElevationForTargetFile(string filePath)
-        {
-            if (string.IsNullOrWhiteSpace(filePath) || IsProcessElevated())
-            {
-                return false;
-            }
-            string parentDir = Path.GetDirectoryName(filePath);
-            if (!string.IsNullOrEmpty(parentDir) && SteamLocator.SafeDirectoryExists(parentDir))
-            {
-                if (!CanProbeDirectoryWrite(parentDir))
-                {
-                    return true;
-                }
-            }
-            if (SteamLocator.SafeFileExists(filePath) && !CanOpenExistingFileForWrite(filePath))
-            {
-                return true;
-            }
-            return false;
-        }
-
         public static string BuildUacArguments(string modeFlag, string gameDir, string steamDir)
         {
             StringBuilder sb = new StringBuilder();
@@ -1725,13 +1698,6 @@ namespace FrontierTaleRuSetup
 
         public static void Install(PayloadData payload, string gameDir, string steamDir, Action<string> log)
         {
-            string ignoredSkippedSchema;
-            Install(payload, gameDir, steamDir, log, out ignoredSkippedSchema);
-        }
-
-        public static void Install(PayloadData payload, string gameDir, string steamDir, Action<string> log, out string skippedSchemaPath)
-        {
-            skippedSchemaPath = null;
             if (log == null)
             {
                 log = delegate { };
@@ -1800,7 +1766,7 @@ namespace FrontierTaleRuSetup
                         jsonStats.TranslatedKeys));
                 }
 
-                // Preserve the original backup when updating from v1.0 or v1.1.
+                // Preserve legacy steam_schema backup record when updating from v1.0-v1.2.
                 BackupFileRecord legacy = FindRecord(existingManifest, "steam_schema", "UserGameStatsSchema_4829780.bin");
                 if (legacy != null)
                 {
@@ -1820,13 +1786,6 @@ namespace FrontierTaleRuSetup
 
         public static void Uninstall(string gameDir, string steamDir, Action<string> log)
         {
-            string ignoredSkippedSchema;
-            Uninstall(gameDir, steamDir, log, out ignoredSkippedSchema);
-        }
-
-        public static void Uninstall(string gameDir, string steamDir, Action<string> log, out string skippedSchemaPath)
-        {
-            skippedSchemaPath = null;
             if (log == null)
             {
                 log = delegate { };
@@ -1876,14 +1835,17 @@ namespace FrontierTaleRuSetup
                     else if (string.Equals(rec.TargetKind, "steam_schema", StringComparison.OrdinalIgnoreCase))
                     {
                         string statsDir = string.IsNullOrEmpty(steamDir) ? null : Path.Combine(steamDir, @"appcache\stats");
-                        string schemaTarget = !string.IsNullOrEmpty(statsDir)
+                        string schemaTarget = (!string.IsNullOrEmpty(statsDir) && SteamLocator.SafeDirectoryExists(statsDir))
                             ? Path.Combine(statsDir, "UserGameStatsSchema_4829780.bin")
                             : manifest.SteamSchemaSourcePath;
 
                         if (!string.IsNullOrEmpty(schemaTarget))
                         {
+                            string schemaParent = Path.GetDirectoryName(schemaTarget);
                             string backupSchemaPath = Path.Combine(backupRoot, rec.BackupRelPath);
-                            if (SteamLocator.SafeFileExists(backupSchemaPath))
+                            if (!string.IsNullOrEmpty(schemaParent)
+                                && SteamLocator.SafeDirectoryExists(schemaParent)
+                                && SteamLocator.SafeFileExists(backupSchemaPath))
                             {
                                 byte[] origSchema = File.ReadAllBytes(backupSchemaPath);
                                 VerifyExpectedHash("UserGameStatsSchema_4829780.bin", origSchema, rec.OrigSha256);
@@ -1899,7 +1861,6 @@ namespace FrontierTaleRuSetup
                                     {
                                         throw;
                                     }
-                                    skippedSchemaPath = schemaTarget;
                                     log("Примечание: нет прав записи в папку Steam (" + schemaTarget + "). Оригинальные файлы самой игры полностью восстановлены.");
                                 }
                             }
@@ -1910,30 +1871,6 @@ namespace FrontierTaleRuSetup
             finally
             {
                 TryDeleteDirectory(stagingRoot);
-            }
-
-            if (!string.IsNullOrEmpty(skippedSchemaPath))
-            {
-                BackupManifestData remaining = new BackupManifestData();
-                remaining.ManifestVersion = manifest.ManifestVersion;
-                remaining.InstallerVersion = manifest.InstallerVersion;
-                remaining.AppId = manifest.AppId;
-                remaining.UpdatedUtc = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
-                remaining.SteamSchemaSourcePath = manifest.SteamSchemaSourcePath;
-                for (int i = 0; i < manifest.Files.Count; i++)
-                {
-                    if (string.Equals(manifest.Files[i].TargetKind, "steam_schema", StringComparison.OrdinalIgnoreCase))
-                    {
-                        remaining.Files.Add(manifest.Files[i]);
-                    }
-                    else
-                    {
-                        TryDeleteFile(Path.Combine(backupRoot, manifest.Files[i].BackupRelPath));
-                    }
-                }
-                BackupManifestStore.Save(manifestPath, remaining);
-                AssertNoLeftoverFilesInLocalizationDir(gameDir);
-                return;
             }
 
             TryDeleteDirectory(backupRoot);
@@ -1976,7 +1913,7 @@ namespace FrontierTaleRuSetup
                     }
                     else
                     {
-                        log("Обнаружено обновление игры в Steam для Localization\\en_US.json — обновляется резервная копия.");
+                        log("Обнаружено обновление игры в Steam для Localization\\en_US.json: обновляется резервная копия.");
                     }
                 }
             }
@@ -2575,7 +2512,7 @@ namespace FrontierTaleRuSetup
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = TacticalTheme.BgDeep;
             ForeColor = TacticalTheme.TextPrimary;
-            Text = "Frontier Tale - Русификатор v1.2";
+            Text = "Frontier Tale - Русификатор v1.3";
             ClientSize = new Size(S(728), S(414));
 
             _winIcon = TacticalTheme.CreateWindowIcon();
@@ -2877,16 +2814,15 @@ namespace FrontierTaleRuSetup
                 return;
             }
 
-            string skippedSchema = null;
             RunWorkerAction(
                 "Установка русификатора...",
                 delegate(Action<string> logger)
                 {
-                    InstallerService.Install(_payload, gameDir, steamDir, logger, out skippedSchema);
+                    InstallerService.Install(_payload, gameDir, steamDir, logger);
                 },
                 delegate(Exception failure)
                 {
-                    HandleWorkerFinished(failure, skippedSchema, true, skipUacRelaunch, gameDir, steamDir);
+                    HandleWorkerFinished(failure, true, skipUacRelaunch, gameDir, steamDir);
                 });
         }
 
@@ -2902,16 +2838,15 @@ namespace FrontierTaleRuSetup
                 return;
             }
 
-            string skippedSchema = null;
             RunWorkerAction(
                 "Возврат оригинальных файлов...",
                 delegate(Action<string> logger)
                 {
-                    InstallerService.Uninstall(gameDir, steamDir, logger, out skippedSchema);
+                    InstallerService.Uninstall(gameDir, steamDir, logger);
                 },
                 delegate(Exception failure)
                 {
-                    HandleWorkerFinished(failure, skippedSchema, false, skipUacRelaunch, gameDir, steamDir);
+                    HandleWorkerFinished(failure, false, skipUacRelaunch, gameDir, steamDir);
                 });
         }
 
@@ -2962,7 +2897,6 @@ namespace FrontierTaleRuSetup
 
         private void HandleWorkerFinished(
             Exception failure,
-            string skippedSchema,
             bool isInstall,
             bool skipUacRelaunch,
             string gameDir,
@@ -3074,7 +3008,7 @@ namespace FrontierTaleRuSetup
 
             TextRenderer.DrawText(
                 g,
-                "Русский текст для версии игры 2.1.5",
+                "Русский текст для версии игры 2.1.7",
                 _fontSub,
                 new Point(textX, _headerRect.Y + S(46)),
                 TacticalTheme.TextSecondary,
@@ -3148,7 +3082,7 @@ namespace FrontierTaleRuSetup
             Rectangle leftFooter = new Rectangle(S(22), S(372), S(260), S(28));
             TextRenderer.DrawText(
                 g,
-                "v1.2 · neoru-droid",
+                "v1.3 · neoru-droid",
                 _fontSmall,
                 leftFooter,
                 TacticalTheme.TextDim,

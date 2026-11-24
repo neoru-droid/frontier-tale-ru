@@ -1,13 +1,13 @@
-# Frontier Tale · Русификатор
+# Frontier Tale - Русификатор
 
-Сюжет, диалоги, предметы, рецепты, подписи мини-карты и задания на русском языке без обрезки строк.
+Сюжет, диалоги, предметы, рецепты, подписи мини-карты, экран модов и задания на русском языке без обрезки строк.
 
-- **[Скачать перевод v1.2 (ZIP)](https://github.com/neoru-droid/frontier-tale-ru/releases/download/v1.2.0/FrontierTale-RU-v1.2.zip)** · [Как установить](#установка)
+- **[Скачать перевод v1.3 (ZIP)](https://github.com/neoru-droid/frontier-tale-ru/releases/download/v1.3.0/FrontierTale-RU-v1.3.zip)** · [Как установить](#установка)
 - **[Страница релиза на Boosty (бесплатно, без регистрации)](https://boosty.to/cd_tixo/posts/486ebb53-422d-4023-9da7-b1fdbc0b2a7f)**
 
-Проверено на Frontier Tale 2.1.5 (сборка Steam `26751033`) для **Windows** и **Steam Deck / Linux**. Достижения Steam продолжают открываться как обычно, а кнопка удаления в любой момент возвращает чистую оригинальную игру.
+Проверено на Frontier Tale 2.1.7 (сборка Steam `26862122`) для **Windows** и **Steam Deck / Linux**. Достижения Steam продолжают открываться как обычно, а кнопка удаления в любой момент возвращает чистую оригинальную игру.
 
-![Frontier Tale · Русификатор](docs/screenshots/cover_wide.png)
+![Frontier Tale - Русификатор](docs/screenshots/cover_wide.png)
 
 ## Установка
 1. Закройте игру, распакуйте архив и запустите `FrontierTale-RU-Setup.exe` -> **«Установить русификатор»** (в настройках игры оставьте язык **English**).
@@ -40,7 +40,8 @@
 </details>
 
 ## История обновлений
-- **[v1.2](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.2.0)** - перевод для 2.1.5. Обновлены подписи мини-карты, описания жилищ и сообщения о восстановлении ресурсов.
+- **[v1.3](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.3.0)** - обновление под патч `2.1.7` (сборка `26862122`): перевод экрана модов и Мастерской Steam, уточнённые описания построек и станков для материалов.
+- **[v1.2](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.2.0)** - перевод для `2.1.5`: обновлены подписи мини-карты, описания жилищ и сообщения о восстановлении ресурсов.
 - **[v1.1](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.1.0)** - адаптация под патч игры `2.1.0`, кнопка Boosty в установщике.
 - **[v1.0](https://github.com/neoru-droid/frontier-tale-ru/releases/tag/v1.0.0)** - первый релиз русификатора текста для Windows и Steam Deck.
 

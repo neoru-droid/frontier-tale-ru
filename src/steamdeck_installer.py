@@ -310,6 +310,38 @@ def install_localization(bundle: PayloadBundle, game_dir: Path, steam_dir: Path 
     return logs
 
 
+def _read_verified_backup(backup_root: Path, rec: dict[str, Any]) -> bytes:
+    b_file = backup_root / str(rec["backup_rel_path"]).replace("\\", "/")
+    orig = b_file.read_bytes()
+    if rec.get("orig_sha256") and sha256_hex(orig) != rec["orig_sha256"]:
+        raise ValueError(f"Повреждена контрольная сумма резервной копии {b_file.name}.")
+    return orig
+
+
+def _resolve_legacy_schema_target(steam_dir: Path | None, manifest: dict[str, Any]) -> Path | None:
+    if steam_dir is not None:
+        cand = steam_dir / "appcache" / "stats" / SCHEMA_FILE_NAME
+        if cand.parent.is_dir():
+            return cand
+    raw_src = str(manifest.get("steam_schema_source_path") or "").strip()
+    return Path(raw_src) if raw_src else None
+
+
+def _try_restore_legacy_schema(
+    rec: dict[str, Any], backup_root: Path, steam_dir: Path | None, manifest: dict[str, Any]
+) -> str | None:
+    target = _resolve_legacy_schema_target(steam_dir, manifest)
+    b_rel = str(rec.get("backup_rel_path") or "").replace("\\", "/")
+    if target is None or not b_rel or not (backup_root / b_rel).is_file() or not target.parent.is_dir():
+        return None
+    orig = _read_verified_backup(backup_root, rec)
+    try:
+        target.write_bytes(orig)
+    except OSError:
+        return None
+    return "Восстановлена оригинальная схема достижений Steam."
+
+
 def uninstall_localization(game_dir: Path, steam_dir: Path | None) -> list[str]:
     backup_root = game_dir / BACKUP_DIR_NAME
     manifest = _load_manifest(backup_root / MANIFEST_FILE_NAME)
@@ -317,22 +349,15 @@ def uninstall_localization(game_dir: Path, steam_dir: Path | None) -> list[str]:
         raise FileNotFoundError("Резервная копия ru_backup_orig не найдена.")
     logs: list[str] = []
     for rec in manifest.get("files", ()):
-        b_file = backup_root / str(rec["backup_rel_path"]).replace("\\", "/")
-        orig = b_file.read_bytes()
-        if sha256_hex(orig) != rec["orig_sha256"]:
-            raise ValueError(f"Повреждена контрольная сумма резервной копии {b_file.name}.")
-        if rec["target_kind"] == "game":
+        kind = rec.get("target_kind")
+        if kind == "game":
+            orig = _read_verified_backup(backup_root, rec)
             (game_dir / str(rec["rel_path"]).replace("\\", "/")).write_bytes(orig)
             logs.append("Восстановлен оригинальный Localization/en_US.json.")
-        elif rec["target_kind"] == "steam_schema":
-            target = (
-                (steam_dir / "appcache" / "stats" / SCHEMA_FILE_NAME)
-                if steam_dir
-                else Path(manifest.get("steam_schema_source_path") or "")
-            )
-            if str(target):
-                target.write_bytes(orig)
-                logs.append("Восстановлена оригинальная схема достижений Steam.")
+        elif kind == "steam_schema":
+            note = _try_restore_legacy_schema(rec, backup_root, steam_dir, manifest)
+            if note:
+                logs.append(note)
     shutil.rmtree(backup_root)
     return logs
 
@@ -341,7 +366,7 @@ def _zenity_menu(status_text: str) -> str | None:
     res = subprocess.run(
         [
             "zenity", "--list", "--width=620", "--height=320",
-            "--title=Frontier Tale - Русификатор v1.2",
+            "--title=Frontier Tale - Русификатор v1.3",
             f"--text={status_text}",
             "--column=Код", "--column=Действие", "--hide-column=1",
             "install", "Установить / обновить русификатор",
@@ -394,7 +419,7 @@ def _dispatch_choice(
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Frontier Tale — Русификатор для Steam Deck / Linux")
+    p = argparse.ArgumentParser(description="Frontier Tale - Русификатор для Steam Deck / Linux")
     grp = p.add_mutually_exclusive_group()
     grp.add_argument("--status", action="store_true")
     grp.add_argument("--install", action="store_true")
