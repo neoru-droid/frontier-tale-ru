@@ -5,7 +5,7 @@
 - **[Скачать перевод v1.3 (ZIP)](https://github.com/neoru-droid/frontier-tale-ru/releases/download/v1.3.0/FrontierTale-RU-v1.3.zip)** · [Как установить](#установка)
 - **[Страница релиза на Boosty](https://boosty.to/cd_tixo/posts/486ebb53-422d-4023-9da7-b1fdbc0b2a7f?utm_source=github&utm_medium=readme&utm_campaign=frontier_tale)**
 
-Проверено на Frontier Tale 2.1.7 (сборка Steam `26862122`) для **Windows** и **Steam Deck / Linux**. Достижения Steam продолжают открываться как обычно, а кнопка удаления в любой момент возвращает чистую оригинальную игру.
+Проверено на Frontier Tale 2.1.7 (сборка Steam `26862122`) для **Windows** и **Steam Deck / Linux**. Достижения Steam продолжают открываться, а кнопка удаления в любой момент возвращает оригинальные файлы.
 
 ![Frontier Tale - Русификатор](docs/screenshots/cover_wide.png)
 
@@ -52,7 +52,7 @@
 - **[Каталог релизов на Boosty](https://boosty.to/cd_tixo/posts/2a55d7e9-0f53-4d93-9f66-280981158dec?utm_source=github&utm_medium=readme&utm_campaign=frontier_tale)**
 - **[Каталог всех игр с поиском](https://neoru-droid.github.io/)**
 
-Перевод сделан с помощью нейросети и проверен в игре. Найдёте опечатку или косяк - пишите в [Issues](https://github.com/neoru-droid/frontier-tale-ru/issues), поправлю.
+Перевод сделан нейросетью и проверен в игре. Найдёте опечатку или косяк - пишите в [Issues](https://github.com/neoru-droid/frontier-tale-ru/issues), поправлю.
 
 ## Другие переводы
 - [Playrooms](https://github.com/neoru-droid/playrooms-ru)
