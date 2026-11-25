@@ -1,6 +1,6 @@
 # Frontier Tale - Русификатор
 
-Полный русский перевод **Frontier Tale** v1.3 под патч `2.1.7` (сборка Steam `26862122`, Windows и Steam Deck): сюжет, диалоги, предметы, рецепты, подписи мини-карты, экран модов и задания. Достижения в Steam продолжают открываться.
+Полный русский перевод **Frontier Tale** v1.3 под патч `2.1.7` (сборка Steam `26862122`, Windows и Steam Deck): сюжет, диалоги, предметы, рецепты, подписи мини-карты, экран модов и задания.
 
 ## Скачать
 - **[Страница релиза и обновления на Boosty](https://boosty.to/cd_tixo/posts/486ebb53-422d-4023-9da7-b1fdbc0b2a7f?utm_source=github&utm_medium=readme&utm_campaign=frontier_tale)**
