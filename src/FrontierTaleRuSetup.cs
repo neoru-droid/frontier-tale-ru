@@ -31,8 +31,8 @@ using NeoruInstallerSkin;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
-[assembly: AssemblyVersion("1.4.0.0")]
-[assembly: AssemblyFileVersion("1.4.0.0")]
+[assembly: AssemblyVersion("1.5.0.0")]
+[assembly: AssemblyFileVersion("1.5.0.0")]
 
 namespace FrontierTaleRuSetup
 {
@@ -297,7 +297,7 @@ namespace FrontierTaleRuSetup
 
         private static void PrintCliHelp()
         {
-            Console.WriteLine("Frontier Tale - Русификатор v1.4 (neoru-droid)");
+            Console.WriteLine("Frontier Tale - Русификатор v1.5 (neoru-droid)");
             Console.WriteLine();
             Console.WriteLine("Использование:");
             Console.WriteLine("  FrontierTale-RU-Setup.exe                        Графическое окно установщика");
@@ -2464,7 +2464,7 @@ namespace FrontierTaleRuSetup
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = _skin.BgDeep;
             ForeColor = _skin.TextPrimary;
-            Text = "Frontier Tale - Русификатор v1.4";
+            Text = "Frontier Tale - Русификатор v1.5";
             ClientSize = new Size(S(728), S(388));
 
             _bannerImg = SkinResources.LoadEmbeddedImage(SkinResources.BannerResourceName);
@@ -3073,8 +3073,8 @@ namespace FrontierTaleRuSetup
                 _logoImg,
                 _skin,
                 "FRONTIER TALE",
-                "v1.4",
-                "Русский текст для версии игры 2.2.0",
+                "v1.5",
+                "Русский текст для версии игры 2.2.1",
                 _statusBadgeText,
                 _statusBadgeFg,
                 _statusBadgeBg,
