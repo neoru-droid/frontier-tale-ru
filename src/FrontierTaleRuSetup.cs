@@ -20,6 +20,7 @@ using System.Threading;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using NeoruInstallerSkin;
 
 [assembly: AssemblyTitle("Frontier Tale - Русификатор")]
 [assembly: AssemblyDescription("Установщик русификатора текста для Frontier Tale")]
@@ -30,17 +31,46 @@ using Microsoft.Win32;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
-[assembly: AssemblyVersion("1.3.0.0")]
-[assembly: AssemblyFileVersion("1.3.0.0")]
+[assembly: AssemblyVersion("1.4.0.0")]
+[assembly: AssemblyFileVersion("1.4.0.0")]
 
 namespace FrontierTaleRuSetup
 {
     internal static class Program
     {
         public const int TargetAppId = 4829780;
-        public const string BoostyUrl = "https://boosty.to/cd_tixo";
-        public const string SupportUrl = "https://pay.cloudtips.ru/p/240b8760";
+        public const string BoostyUrl = "https://boosty.to/cd_tixo/posts/486ebb53-422d-4023-9da7-b1fdbc0b2a7f";
+        public const string SiteUrl = "https://neoru-droid.github.io/";
         public const string GithubUrl = "https://github.com/neoru-droid/frontier-tale-ru";
+        public const string TelegramUrl = "https://t.me/neoru_droid";
+        public const string CampaignSlug = "frontier_tale";
+
+        public static SkinSpec CreateSkin()
+        {
+            return SkinSpec.CreateParchmentGold(
+                Color.FromArgb(0x11, 0x1A, 0x16),
+                Color.FromArgb(0x19, 0x26, 0x20),
+                Color.FromArgb(0x0E, 0x17, 0x13),
+                Color.FromArgb(0x36, 0x4E, 0x3F),
+                Color.FromArgb(0xE0, 0xAA, 0x4E),
+                Color.FromArgb(0x1A, 0x12, 0x05));
+        }
+
+        public static string BuildBoostyUrl()
+        {
+            return SkinLinks.BuildUtmUrl(BoostyUrl, SkinLinks.DefaultBoostyUrl, CampaignSlug);
+        }
+
+        public static string BuildSiteUrl()
+        {
+            return SkinLinks.BuildUtmUrl(SiteUrl, SkinLinks.DefaultSiteUrl, CampaignSlug);
+        }
+
+        public static string GetTelegramUrl()
+        {
+            string raw = TelegramUrl;
+            return string.IsNullOrWhiteSpace(raw) ? string.Empty : raw.Trim();
+        }
 
         private const int AttachParentProcess = -1;
         private const int StdOutputHandle = -11;
@@ -82,6 +112,20 @@ namespace FrontierTaleRuSetup
             if (cli.Mode == CliMode.Status || cli.Mode == CliMode.Install || cli.Mode == CliMode.Uninstall)
             {
                 return RunHeadlessCli(appBaseDir, cli);
+            }
+            if (cli.Mode == CliMode.RenderPreview)
+            {
+                try { SetProcessDPIAware(); } catch { }
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                using (SetupForm preview = new SetupForm(null, appBaseDir, cli.ExplicitGameDir, cli.ExplicitSteamDir, CliMode.DefaultGui))
+                {
+                    preview.PreparePreviewSamplePath();
+                    PreviewRenderer.RenderFormToPng(preview, cli.PreviewInitPath);
+                    preview.ApplyInstallSuccessVisualState();
+                    PreviewRenderer.RenderFormToPng(preview, cli.PreviewDonePath);
+                }
+                return 0;
             }
 
             try
@@ -253,7 +297,7 @@ namespace FrontierTaleRuSetup
 
         private static void PrintCliHelp()
         {
-            Console.WriteLine("Frontier Tale - Русификатор v1.3 (neoru-droid)");
+            Console.WriteLine("Frontier Tale - Русификатор v1.4 (neoru-droid)");
             Console.WriteLine();
             Console.WriteLine("Использование:");
             Console.WriteLine("  FrontierTale-RU-Setup.exe                        Графическое окно установщика");
@@ -274,7 +318,8 @@ namespace FrontierTaleRuSetup
         UacUninstallGui,
         Status,
         Install,
-        Uninstall
+        Uninstall,
+        RenderPreview
     }
 
     internal sealed class CliArguments
@@ -283,6 +328,8 @@ namespace FrontierTaleRuSetup
         public bool ShowHelp;
         public string ExplicitGameDir;
         public string ExplicitSteamDir;
+        public string PreviewInitPath;
+        public string PreviewDonePath;
 
         public static bool TryParse(string[] args, out CliArguments parsed, out string error)
         {
@@ -324,6 +371,18 @@ namespace FrontierTaleRuSetup
                 else if (EqualsFlag(arg, "--uac-uninstall"))
                 {
                     parsed.Mode = CliMode.UacUninstallGui;
+                    modeCount++;
+                }
+                else if (EqualsFlag(arg, "--render-preview"))
+                {
+                    if (i + 2 >= args.Length)
+                    {
+                        error = "После --render-preview укажите пути <init.png> <done.png>.";
+                        return false;
+                    }
+                    parsed.Mode = CliMode.RenderPreview;
+                    parsed.PreviewInitPath = args[++i];
+                    parsed.PreviewDonePath = args[++i];
                     modeCount++;
                 }
                 else if (EqualsFlag(arg, "--game-dir"))
@@ -2322,129 +2381,6 @@ namespace FrontierTaleRuSetup
 
     }
 
-    internal sealed class TacticalButton : Control
-    {
-        public bool IsPrimary;
-        public bool IsSubtleLink;
-        public int CornerRadius = 6;
-        public Color SurfaceBehind = Color.Empty;
-        private bool _hovered;
-        private bool _pressed;
-
-        public TacticalButton()
-        {
-            SetStyle(
-                ControlStyles.AllPaintingInWmPaint
-                | ControlStyles.OptimizedDoubleBuffer
-                | ControlStyles.ResizeRedraw
-                | ControlStyles.UserPaint,
-                true);
-            Cursor = Cursors.Hand;
-            TabStop = true;
-        }
-
-        protected override void OnMouseEnter(EventArgs e)
-        {
-            base.OnMouseEnter(e);
-            _hovered = true;
-            Invalidate();
-        }
-
-        protected override void OnMouseLeave(EventArgs e)
-        {
-            base.OnMouseLeave(e);
-            _hovered = false;
-            _pressed = false;
-            Invalidate();
-        }
-
-        protected override void OnMouseDown(MouseEventArgs e)
-        {
-            base.OnMouseDown(e);
-            if (e.Button == MouseButtons.Left && Enabled)
-            {
-                _pressed = true;
-                Invalidate();
-            }
-        }
-
-        protected override void OnMouseUp(MouseEventArgs e)
-        {
-            base.OnMouseUp(e);
-            if (_pressed)
-            {
-                _pressed = false;
-                Invalidate();
-            }
-        }
-
-        protected override void OnEnabledChanged(EventArgs e)
-        {
-            base.OnEnabledChanged(e);
-            Cursor = Enabled ? Cursors.Hand : Cursors.Default;
-            Invalidate();
-        }
-
-        protected override void OnKeyDown(KeyEventArgs e)
-        {
-            base.OnKeyDown(e);
-            if (Enabled && (e.KeyCode == Keys.Space || e.KeyCode == Keys.Enter))
-            {
-                OnClick(EventArgs.Empty);
-            }
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            Graphics g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-            Color clearBg = SurfaceBehind != Color.Empty
-                ? SurfaceBehind
-                : (Parent != null ? Parent.BackColor : TacticalTheme.BgDeep);
-            g.Clear(clearBg);
-
-            Rectangle r = new Rectangle(0, 0, Width, Height);
-            Color fill;
-            Color border;
-            Color fg;
-
-            if (!Enabled)
-            {
-                fill = Color.FromArgb(0x18, 0x20, 0x28);
-                border = Color.FromArgb(0x25, 0x31, 0x3D);
-                fg = TacticalTheme.TextDim;
-            }
-            else if (IsPrimary)
-            {
-                fill = _pressed ? TacticalTheme.EmeraldPressed : (_hovered ? TacticalTheme.EmeraldHover : TacticalTheme.EmeraldPrimary);
-                border = fill;
-                fg = TacticalTheme.EmeraldDarkText;
-            }
-            else if (IsSubtleLink)
-            {
-                fill = _pressed ? TacticalTheme.SecondaryBtnPressed : (_hovered ? TacticalTheme.CardSurface : TacticalTheme.BgDeep);
-                border = _hovered ? TacticalTheme.SecondaryBtnBorder : TacticalTheme.BorderCrisp;
-                fg = _hovered ? TacticalTheme.TextPrimary : TacticalTheme.TextSecondary;
-            }
-            else
-            {
-                fill = _pressed ? TacticalTheme.SecondaryBtnPressed : (_hovered ? TacticalTheme.SecondaryBtnHover : TacticalTheme.SecondaryBtnBg);
-                border = _hovered ? Color.FromArgb(0x46, 0x5D, 0x73) : TacticalTheme.SecondaryBtnBorder;
-                fg = TacticalTheme.TextPrimary;
-            }
-
-            TacticalTheme.DrawCard(g, r, fill, border, CornerRadius);
-
-            TextFormatFlags flags = TextFormatFlags.HorizontalCenter
-                | TextFormatFlags.VerticalCenter
-                | TextFormatFlags.SingleLine
-                | TextFormatFlags.NoPrefix;
-            Rectangle textRect = new Rectangle(4, _pressed ? 1 : 0, Width - 8, Height);
-            TextRenderer.DrawText(g, Text, Font, textRect, fg, flags);
-        }
-    }
-
     internal sealed class SetupForm : Form
     {
         private readonly PayloadData _payload;
@@ -2456,10 +2392,18 @@ namespace FrontierTaleRuSetup
         private bool _isBusy;
         private bool _uacAutoTriggered;
 
+        private readonly SkinSpec _skin;
+        private Image _bannerImg;
+        private Image _logoImg;
+        private PrivateFontCollection _embeddedFontCollection;
+        private FontFamily _embeddedFontFamily;
+
         private string _statusBadgeText = string.Empty;
-        private Color _statusBadgeFg = TacticalTheme.TextSecondary;
-        private Color _statusBadgeBg = TacticalTheme.RecessedBg;
-        private Color _statusBadgeBorder = TacticalTheme.BorderCrisp;
+        private Color _statusBadgeFg;
+        private Color _statusBadgeBg;
+        private Color _statusBadgeBorder;
+        private string _statusRibbonText = "Готов к установке русификатора.";
+        private bool _installSucceeded;
 
         private Font _fontBrand;
         private Font _fontBadge;
@@ -2475,16 +2419,20 @@ namespace FrontierTaleRuSetup
         private Rectangle _headerRect;
         private Rectangle _pathCardRect;
         private Rectangle _pathInputRect;
+        private Rectangle _statusRibbonRect;
         private Rectangle _logCardRect;
 
         private TextBox _pathBox;
-        private TacticalButton _browseBtn;
-        private TacticalButton _installBtn;
-        private TacticalButton _uninstallBtn;
+        private SkinnedButton _browseBtn;
+        private SkinnedButton _installBtn;
+        private SkinnedButton _uninstallBtn;
         private TextBox _logBox;
-        private TacticalButton _boostyLinkBtn;
-        private TacticalButton _supportLinkBtn;
-        private TacticalButton _githubLinkBtn;
+        private SkinnedButton _detailsBtn;
+        private bool _detailsOpen;
+        private SkinnedButton _boostyLinkBtn;
+        private SkinnedButton _siteLinkBtn;
+        private SkinnedButton _githubLinkBtn;
+        private SkinnedButton _telegramLinkBtn;
 
         public SetupForm(
             PayloadData payload,
@@ -2496,6 +2444,10 @@ namespace FrontierTaleRuSetup
             _payload = payload;
             _appBaseDir = appBaseDir;
             _launchMode = launchMode;
+            _skin = Program.CreateSkin();
+            _statusBadgeFg = _skin.TextMuted;
+            _statusBadgeBg = _skin.RecessedBg;
+            _statusBadgeBorder = _skin.Border;
 
             SetStyle(
                 ControlStyles.AllPaintingInWmPaint
@@ -2510,12 +2462,15 @@ namespace FrontierTaleRuSetup
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            BackColor = TacticalTheme.BgDeep;
-            ForeColor = TacticalTheme.TextPrimary;
-            Text = "Frontier Tale - Русификатор v1.3";
-            ClientSize = new Size(S(728), S(414));
+            BackColor = _skin.BgDeep;
+            ForeColor = _skin.TextPrimary;
+            Text = "Frontier Tale - Русификатор v1.4";
+            ClientSize = new Size(S(728), S(388));
 
-            _winIcon = TacticalTheme.CreateWindowIcon();
+            _bannerImg = SkinResources.LoadEmbeddedImage(SkinResources.BannerResourceName);
+            _logoImg = SkinResources.LoadEmbeddedImage(SkinResources.LogoResourceName);
+            _embeddedFontFamily = SkinResources.LoadEmbeddedFontFamily(SkinResources.TitleFontResourceName, out _embeddedFontCollection);
+            _winIcon = SkinResources.TryExtractExeIcon() ?? TacticalTheme.CreateWindowIcon();
             if (_winIcon != null)
             {
                 Icon = _winIcon;
@@ -2523,8 +2478,44 @@ namespace FrontierTaleRuSetup
 
             InitFonts();
             BuildControls();
+            SetDetailsOpen(false);
             InitDetection(explicitGameDir, explicitSteamDir);
             ActiveControl = _installBtn;
+        }
+
+        public void PreparePreviewSamplePath()
+        {
+            if (string.IsNullOrWhiteSpace(_pathBox.Text))
+            {
+                _pathBox.Text = @"C:\Program Files (x86)\Steam\steamapps\common\" + SteamLocator.DefaultGameFolderName;
+            }
+            _installSucceeded = false;
+            _statusBadgeText = "Готов к установке";
+            _statusBadgeFg = _skin.TextPrimary;
+            _statusBadgeBg = _skin.CardSurface;
+            _statusBadgeBorder = _skin.Border;
+            _statusRibbonText = "Папка игры найдена. Нажмите «Установить русификатор».";
+            _installBtn.Text = "Установить русификатор";
+            _installBtn.Enabled = true;
+            _uninstallBtn.Enabled = false;
+            Invalidate();
+        }
+
+        public void ApplyInstallSuccessVisualState()
+        {
+            _installSucceeded = true;
+            _statusBadgeText = "Установлен";
+            _statusBadgeFg = _skin.SuccessFg;
+            _statusBadgeBg = _skin.SuccessBg;
+            _statusBadgeBorder = _skin.SuccessBorder;
+            _statusRibbonText = "Готово! Русификатор установлен. Обновления под патчи Steam выходят на Boosty.";
+            _installBtn.Text = "Обновить русификатор";
+            _installBtn.Enabled = true;
+            _uninstallBtn.Enabled = true;
+            _boostyLinkBtn.Kind = SkinButtonKind.BoostyHighlight;
+            _boostyLinkBtn.Text = "Boosty · патчи и бонусы";
+            _boostyLinkBtn.Invalidate();
+            Invalidate();
         }
 
         protected override void OnLoad(EventArgs e)
@@ -2559,14 +2550,16 @@ namespace FrontierTaleRuSetup
 
         private void InitFonts()
         {
-            _fontBrand = new Font("Segoe UI", S(20), FontStyle.Bold, GraphicsUnit.Pixel);
-            _fontBadge = new Font("Segoe UI", S(11), FontStyle.Bold, GraphicsUnit.Pixel);
-            _fontSub = new Font("Segoe UI", S(12), FontStyle.Regular, GraphicsUnit.Pixel);
-            _fontSection = new Font("Segoe UI", S(11), FontStyle.Bold, GraphicsUnit.Pixel);
-            _fontBody = new Font("Segoe UI", S(13), FontStyle.Regular, GraphicsUnit.Pixel);
-            _fontSmall = new Font("Segoe UI", S(11), FontStyle.Regular, GraphicsUnit.Pixel);
-            _fontPrimaryBtn = new Font("Segoe UI", S(13), FontStyle.Bold, GraphicsUnit.Pixel);
-            _fontSecondaryBtn = new Font("Segoe UI", S(13), FontStyle.Bold, GraphicsUnit.Pixel);
+            string uiFont = _skin.Style == SkinStyle.Win95Bevel ? "Tahoma" : "Segoe UI";
+            string fallbackHead = _skin.Style == SkinStyle.ParchmentGold ? "Georgia" : uiFont;
+            _fontBrand = SkinResources.CreateHeadingFont(_embeddedFontFamily, fallbackHead, S(24), FontStyle.Bold);
+            _fontBadge = new Font(uiFont, S(11), FontStyle.Bold, GraphicsUnit.Pixel);
+            _fontSub = new Font(uiFont, S(12), FontStyle.Regular, GraphicsUnit.Pixel);
+            _fontSection = new Font(uiFont, S(11), FontStyle.Bold, GraphicsUnit.Pixel);
+            _fontBody = new Font(uiFont, S(13), FontStyle.Regular, GraphicsUnit.Pixel);
+            _fontSmall = new Font(uiFont, S(11), FontStyle.Regular, GraphicsUnit.Pixel);
+            _fontPrimaryBtn = SkinResources.CreateHeadingFont(_embeddedFontFamily, uiFont, S(14), FontStyle.Bold);
+            _fontSecondaryBtn = new Font(uiFont, S(13), FontStyle.Bold, GraphicsUnit.Pixel);
             _fontLog = new Font("Consolas", S(12), FontStyle.Regular, GraphicsUnit.Pixel);
         }
 
@@ -2575,8 +2568,8 @@ namespace FrontierTaleRuSetup
             int pad = S(20);
             int contentW = ClientSize.Width - pad * 2;
 
-            _headerRect = new Rectangle(pad, S(16), contentW, S(82));
-            _pathCardRect = new Rectangle(pad, S(110), contentW, S(82));
+            _headerRect = new Rectangle(pad, S(16), contentW, S(128));
+            _pathCardRect = new Rectangle(pad, S(156), contentW, S(82));
 
             int browseW = S(114);
             int inputX = _pathCardRect.X + S(16);
@@ -2590,8 +2583,8 @@ namespace FrontierTaleRuSetup
             _pathBox.WordWrap = false;
             _pathBox.AcceptsReturn = false;
             _pathBox.BorderStyle = BorderStyle.None;
-            _pathBox.BackColor = TacticalTheme.RecessedBg;
-            _pathBox.ForeColor = TacticalTheme.TextPrimary;
+            _pathBox.BackColor = _skin.RecessedBg;
+            _pathBox.ForeColor = _skin.TextPrimary;
             _pathBox.Font = _fontBody;
             int lineH = _fontBody.Height + S(2);
             int tbTop = inputY + Math.Max(S(4), (inputH - lineH) / 2);
@@ -2614,85 +2607,143 @@ namespace FrontierTaleRuSetup
                 }
                 RefreshUiState();
             };
+            _pathBox.AccessibleName = "Папка игры";
             Controls.Add(_pathBox);
 
-            _browseBtn = new TacticalButton();
+            _browseBtn = new SkinnedButton();
+            _browseBtn.Spec = _skin;
+            _browseBtn.Kind = SkinButtonKind.Secondary;
             _browseBtn.Text = "Обзор...";
             _browseBtn.Font = _fontSecondaryBtn;
             _browseBtn.CornerRadius = S(6);
-            _browseBtn.SurfaceBehind = TacticalTheme.CardSurface;
             _browseBtn.Bounds = new Rectangle(inputX + inputW + S(10), inputY, browseW, inputH);
             _browseBtn.Click += OnBrowseClicked;
             Controls.Add(_browseBtn);
 
-            int btnY = S(206);
+            int btnY = S(250);
             int btnH = S(44);
             int gap = S(12);
             int restoreW = S(240);
             int installW = contentW - restoreW - gap;
 
-            _installBtn = new TacticalButton();
+            _installBtn = new SkinnedButton();
+            _installBtn.Spec = _skin;
+            _installBtn.Kind = SkinButtonKind.Primary;
             _installBtn.Text = "Установить русификатор";
             _installBtn.Font = _fontPrimaryBtn;
-            _installBtn.IsPrimary = true;
             _installBtn.CornerRadius = S(6);
             _installBtn.Bounds = new Rectangle(pad, btnY, installW, btnH);
-            _installBtn.Click += OnInstallClicked;
+            _installBtn.Click += delegate { StartInstallFlow(_launchMode == CliMode.UacInstallGui); };
             Controls.Add(_installBtn);
 
-            _uninstallBtn = new TacticalButton();
+            _uninstallBtn = new SkinnedButton();
+            _uninstallBtn.Spec = _skin;
+            _uninstallBtn.Kind = SkinButtonKind.Secondary;
             _uninstallBtn.Text = "Вернуть оригинал";
             _uninstallBtn.Font = _fontSecondaryBtn;
             _uninstallBtn.CornerRadius = S(6);
             _uninstallBtn.Bounds = new Rectangle(pad + installW + gap, btnY, restoreW, btnH);
-            _uninstallBtn.Click += OnUninstallClicked;
+            _uninstallBtn.Click += delegate { StartUninstallFlow(_launchMode == CliMode.UacUninstallGui); };
             Controls.Add(_uninstallBtn);
 
-            _logCardRect = new Rectangle(pad, S(264), contentW, S(96));
+            _statusRibbonRect = new Rectangle(pad, S(304), contentW, S(28));
+
+            int barY = S(342);
+            int barH = S(30);
+            int detailsW = S(144);
+            int linkGap = S(8);
+            int tgW = S(82);
+            int ghW = S(72);
+            int siteW = S(86);
+            int boostyW = S(220);
+
+            string telegramUrl = Program.GetTelegramUrl();
+            bool hasTelegram = !string.IsNullOrWhiteSpace(telegramUrl);
+
+            int rightEdge = ClientSize.Width - pad;
+            int tgX = rightEdge - tgW;
+            int ghX = hasTelegram ? (tgX - linkGap - ghW) : (rightEdge - ghW);
+            int siteX = ghX - linkGap - siteW;
+            int boostyX = siteX - linkGap - boostyW;
+
+            _detailsBtn = new SkinnedButton();
+            _detailsBtn.Spec = _skin;
+            _detailsBtn.Kind = SkinButtonKind.SubtleLink;
+            _detailsBtn.Font = _fontSecondaryBtn;
+            _detailsBtn.CornerRadius = S(5);
+            _detailsBtn.Bounds = new Rectangle(pad, barY, detailsW, barH);
+            _detailsBtn.Click += delegate { SetDetailsOpen(!_detailsOpen); };
+            Controls.Add(_detailsBtn);
+
+            _boostyLinkBtn = new SkinnedButton();
+            _boostyLinkBtn.Spec = _skin;
+            _boostyLinkBtn.Kind = SkinButtonKind.SubtleLink;
+            _boostyLinkBtn.Text = "Boosty (патчи и заказ игр)";
+            _boostyLinkBtn.Font = _fontSmall;
+            _boostyLinkBtn.CornerRadius = S(5);
+            _boostyLinkBtn.Bounds = new Rectangle(boostyX, barY, boostyW, barH);
+            _boostyLinkBtn.Click += delegate { Program.OpenBrowserUrl(Program.BuildBoostyUrl()); };
+            Controls.Add(_boostyLinkBtn);
+
+            _siteLinkBtn = new SkinnedButton();
+            _siteLinkBtn.Spec = _skin;
+            _siteLinkBtn.Kind = SkinButtonKind.SubtleLink;
+            _siteLinkBtn.Text = "Все игры";
+            _siteLinkBtn.Font = _fontSmall;
+            _siteLinkBtn.CornerRadius = S(5);
+            _siteLinkBtn.Bounds = new Rectangle(siteX, barY, siteW, barH);
+            _siteLinkBtn.Click += delegate { Program.OpenBrowserUrl(Program.BuildSiteUrl()); };
+            Controls.Add(_siteLinkBtn);
+
+            _githubLinkBtn = new SkinnedButton();
+            _githubLinkBtn.Spec = _skin;
+            _githubLinkBtn.Kind = SkinButtonKind.SubtleLink;
+            _githubLinkBtn.Text = "GitHub";
+            _githubLinkBtn.Font = _fontSmall;
+            _githubLinkBtn.CornerRadius = S(5);
+            _githubLinkBtn.Bounds = new Rectangle(ghX, barY, ghW, barH);
+            _githubLinkBtn.Click += delegate { Program.OpenBrowserUrl(Program.GithubUrl); };
+            Controls.Add(_githubLinkBtn);
+
+            if (hasTelegram)
+            {
+                _telegramLinkBtn = new SkinnedButton();
+                _telegramLinkBtn.Spec = _skin;
+                _telegramLinkBtn.Kind = SkinButtonKind.SubtleLink;
+                _telegramLinkBtn.Text = "Telegram";
+                _telegramLinkBtn.Font = _fontSmall;
+                _telegramLinkBtn.CornerRadius = S(5);
+                _telegramLinkBtn.Bounds = new Rectangle(tgX, barY, tgW, barH);
+                _telegramLinkBtn.Click += delegate { Program.OpenBrowserUrl(telegramUrl); };
+                Controls.Add(_telegramLinkBtn);
+            }
+
+            _logCardRect = new Rectangle(pad, S(384), contentW, S(96));
             _logBox = new TextBox();
+            _logBox.AccessibleName = "Журнал установки";
             _logBox.Multiline = true;
             _logBox.ReadOnly = true;
             _logBox.BorderStyle = BorderStyle.None;
             _logBox.ScrollBars = ScrollBars.None;
-            _logBox.BackColor = TacticalTheme.RecessedBg;
-            _logBox.ForeColor = Color.FromArgb(0xD0, 0xDC, 0xE8);
+            _logBox.BackColor = _skin.RecessedBg;
+            _logBox.ForeColor = _skin.TextPrimary;
             _logBox.Font = _fontLog;
             _logBox.Location = new Point(_logCardRect.X + S(16), _logCardRect.Y + S(33));
             _logBox.Size = new Size(_logCardRect.Width - S(32), _logCardRect.Height - S(46));
             Controls.Add(_logBox);
+        }
 
-            int footerY = S(372);
-            int footerH = S(28);
-            int ghW = S(88);
-            int boostyW = S(88);
-            int supW = S(168);
-
-            _githubLinkBtn = new TacticalButton();
-            _githubLinkBtn.Text = "GitHub";
-            _githubLinkBtn.Font = _fontSmall;
-            _githubLinkBtn.IsSubtleLink = true;
-            _githubLinkBtn.CornerRadius = S(5);
-            _githubLinkBtn.Bounds = new Rectangle(ClientSize.Width - pad - ghW, footerY, ghW, footerH);
-            _githubLinkBtn.Click += delegate { Program.OpenBrowserUrl(Program.GithubUrl); };
-            Controls.Add(_githubLinkBtn);
-
-            _boostyLinkBtn = new TacticalButton();
-            _boostyLinkBtn.Text = "Boosty";
-            _boostyLinkBtn.Font = _fontSmall;
-            _boostyLinkBtn.IsSubtleLink = true;
-            _boostyLinkBtn.CornerRadius = S(5);
-            _boostyLinkBtn.Bounds = new Rectangle(ClientSize.Width - pad - ghW - S(8) - boostyW, footerY, boostyW, footerH);
-            _boostyLinkBtn.Click += delegate { Program.OpenBrowserUrl(Program.BoostyUrl); };
-            Controls.Add(_boostyLinkBtn);
-
-            _supportLinkBtn = new TacticalButton();
-            _supportLinkBtn.Text = "Поддержать перевод";
-            _supportLinkBtn.Font = _fontSmall;
-            _supportLinkBtn.IsSubtleLink = true;
-            _supportLinkBtn.CornerRadius = S(5);
-            _supportLinkBtn.Bounds = new Rectangle(ClientSize.Width - pad - ghW - S(8) - boostyW - S(8) - supW, footerY, supW, footerH);
-            _supportLinkBtn.Click += delegate { Program.OpenBrowserUrl(Program.SupportUrl); };
-            Controls.Add(_supportLinkBtn);
+        private void SetDetailsOpen(bool open)
+        {
+            _detailsOpen = open;
+            _detailsBtn.Text = open ? "Скрыть журнал" : "Подробности";
+            _logBox.Visible = open;
+            ClientSize = new Size(ClientSize.Width, S(open ? 500 : 388));
+            if (Visible)
+            {
+                TacticalTheme.ClampWindowToWorkingArea(this, S(12), false);
+            }
+            Invalidate();
         }
 
         private void InitDetection(string explicitGameDir, string explicitSteamDir)
@@ -2740,25 +2791,38 @@ namespace FrontierTaleRuSetup
             if (!validGame)
             {
                 _statusBadgeText = "Укажите папку игры";
-                _statusBadgeFg = TacticalTheme.WarnAmber;
-                _statusBadgeBg = Color.FromArgb(0x2B, 0x21, 0x14);
-                _statusBadgeBorder = Color.FromArgb(0x5E, 0x45, 0x22);
+                _statusBadgeFg = _skin.WarnFg;
+                _statusBadgeBg = _skin.WarnBg;
+                _statusBadgeBorder = _skin.WarnBorder;
+                if (!_installSucceeded)
+                {
+                    _statusRibbonText = "Выберите папку с игрой кнопкой «Обзор...».";
+                }
             }
             else if (installed)
             {
                 _statusBadgeText = "Установлен";
-                _statusBadgeFg = TacticalTheme.EmeraldPrimary;
-                _statusBadgeBg = TacticalTheme.EmeraldPillBg;
-                _statusBadgeBorder = TacticalTheme.BorderEmerald;
+                _statusBadgeFg = _skin.SuccessFg;
+                _statusBadgeBg = _skin.SuccessBg;
+                _statusBadgeBorder = _skin.SuccessBorder;
+                if (!_installSucceeded)
+                {
+                    _statusRibbonText = "Русификатор уже установлен. Можно обновить или вернуть оригинал.";
+                }
             }
             else
             {
                 _statusBadgeText = "Не установлен";
-                _statusBadgeFg = TacticalTheme.TextSecondary;
-                _statusBadgeBg = TacticalTheme.RecessedBg;
-                _statusBadgeBorder = TacticalTheme.BorderCrisp;
+                _statusBadgeFg = _skin.TextMuted;
+                _statusBadgeBg = _skin.RecessedBg;
+                _statusBadgeBorder = _skin.Border;
+                if (!_installSucceeded)
+                {
+                    _statusRibbonText = "Папка игры найдена. Нажмите «Установить русификатор».";
+                }
             }
 
+            _installBtn.Text = _isBusy ? "Подождите..." : (installed ? "Обновить русификатор" : "Установить русификатор");
             _installBtn.Enabled = !_isBusy && validGame;
             _uninstallBtn.Enabled = !_isBusy && hasBackup;
             _browseBtn.Enabled = !_isBusy;
@@ -2792,16 +2856,6 @@ namespace FrontierTaleRuSetup
             }
         }
 
-        private void OnInstallClicked(object sender, EventArgs e)
-        {
-            StartInstallFlow(_launchMode == CliMode.UacInstallGui);
-        }
-
-        private void OnUninstallClicked(object sender, EventArgs e)
-        {
-            StartUninstallFlow(_launchMode == CliMode.UacUninstallGui);
-        }
-
         private void StartInstallFlow(bool skipUacRelaunch)
         {
             if (_isBusy) return;
@@ -2832,7 +2886,7 @@ namespace FrontierTaleRuSetup
             string gameDir = SteamLocator.NormalizePickedGameDirectory(_pathBox.Text);
             string steamDir = _steamDir;
             if (!CheckReadyBeforeAction(gameDir)) return;
-            if (!skipUacRelaunch && (ElevationHelper.NeedsElevationForGameDir(gameDir)))
+            if (!skipUacRelaunch && ElevationHelper.NeedsElevationForGameDir(gameDir))
             {
                 TryElevateAndClose("--uac-uninstall", gameDir, steamDir);
                 return;
@@ -2912,7 +2966,19 @@ namespace FrontierTaleRuSetup
             {
                 AppendLog("ОШИБКА: " + failure.Message);
                 MessageBox.Show(this, failure.Message, "Ошибка операции", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+            }
+            else if (isInstall)
+            {
+                ApplyInstallSuccessVisualState();
+            }
+            else
+            {
+                _installSucceeded = false;
+                _boostyLinkBtn.Kind = SkinButtonKind.SubtleLink;
+                _boostyLinkBtn.Text = "Boosty (патчи и заказ игр)";
+                _statusRibbonText = "Оригинальные файлы игры восстановлены.";
+                _boostyLinkBtn.Invalidate();
+                Invalidate();
             }
         }
 
@@ -2965,6 +3031,10 @@ namespace FrontierTaleRuSetup
 
         private void AppendLog(string message)
         {
+            if (!_detailsOpen && message.StartsWith("Ошибка", StringComparison.OrdinalIgnoreCase))
+            {
+                SetDetailsOpen(true);
+            }
             string stamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
             string line = "[" + stamp + "] " + message;
             if (_logBox.TextLength > 0) _logBox.AppendText("\r\n" + line);
@@ -2984,89 +3054,59 @@ namespace FrontierTaleRuSetup
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
+            SkinPainter.DrawWindowBackdrop(g, ClientRectangle, _skin);
             PaintHeaderCard(g);
             PaintPathCard(g);
-            PaintLogCard(g);
-            PaintFooter(g);
+            SkinPainter.DrawStatusRibbon(g, _statusRibbonRect, _skin, _installSucceeded, _statusRibbonText, _fontSub, _scale);
+            if (_detailsOpen)
+            {
+                PaintLogCard(g);
+            }
         }
 
         private void PaintHeaderCard(Graphics g)
         {
-            TacticalTheme.DrawCard(g, _headerRect, TacticalTheme.CardSurface, TacticalTheme.BorderCrisp, S(8));
-
-            Rectangle emblemRect = new Rectangle(_headerRect.X + S(16), _headerRect.Y + S(15), S(52), S(52));
-            TacticalTheme.DrawPioneerCompassBadge(g, emblemRect);
-
-            int textX = emblemRect.Right + S(14);
-            TextRenderer.DrawText(
+            SkinPainter.DrawHeroBanner(
                 g,
+                _headerRect,
+                _bannerImg,
+                _logoImg,
+                _skin,
                 "FRONTIER TALE",
+                "v1.4",
+                "Русский текст для версии игры 2.2.0",
+                _statusBadgeText,
+                _statusBadgeFg,
+                _statusBadgeBg,
+                _statusBadgeBorder,
                 _fontBrand,
-                new Point(textX, _headerRect.Y + S(15)),
-                TacticalTheme.TextPrimary,
-                TextFormatFlags.NoPrefix);
-
-            TextRenderer.DrawText(
-                g,
-                "Русский текст для версии игры 2.1.7",
+                _fontBadge,
                 _fontSub,
-                new Point(textX, _headerRect.Y + S(46)),
-                TacticalTheme.TextSecondary,
-                TextFormatFlags.NoPrefix);
-
-            if (!string.IsNullOrEmpty(_statusBadgeText))
-            {
-                Size stSize = TextRenderer.MeasureText(g, _statusBadgeText, _fontBadge, new Size(S(260), S(30)), TextFormatFlags.NoPrefix);
-                int pillW = stSize.Width + S(26);
-                int pillH = S(26);
-                Rectangle stPill = new Rectangle(
-                    _headerRect.Right - S(16) - pillW,
-                    _headerRect.Y + (_headerRect.Height - pillH) / 2,
-                    pillW,
-                    pillH);
-                TacticalTheme.DrawCard(g, stPill, _statusBadgeBg, _statusBadgeBorder, S(13));
-
-                int dotSize = S(7);
-                using (SolidBrush dotBrush = new SolidBrush(_statusBadgeFg))
-                {
-                    g.FillEllipse(dotBrush, stPill.X + S(10), stPill.Y + (pillH - dotSize) / 2, dotSize, dotSize);
-                }
-                Rectangle labelRect = new Rectangle(stPill.X + S(20), stPill.Y, stPill.Width - S(24), stPill.Height);
-                TextRenderer.DrawText(
-                    g,
-                    _statusBadgeText,
-                    _fontBadge,
-                    labelRect,
-                    _statusBadgeFg,
-                    TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPrefix);
-            }
+                _scale);
         }
 
         private void PaintPathCard(Graphics g)
         {
-            TacticalTheme.DrawCard(g, _pathCardRect, TacticalTheme.CardSurface, TacticalTheme.BorderCrisp, S(8));
-
+            SkinPainter.DrawCard(g, _pathCardRect, _skin, S(8));
             TextRenderer.DrawText(
                 g,
                 "ПАПКА С ИГРОЙ",
                 _fontSection,
                 new Point(_pathCardRect.X + S(16), _pathCardRect.Y + S(11)),
-                TacticalTheme.TextSecondary,
+                _skin.TextMuted,
                 TextFormatFlags.NoPrefix);
-
-            TacticalTheme.DrawCard(g, _pathInputRect, TacticalTheme.RecessedBg, TacticalTheme.BorderCrisp, S(5));
+            SkinPainter.DrawInputFrame(g, _pathInputRect, _skin, S(5));
         }
 
         private void PaintLogCard(Graphics g)
         {
-            TacticalTheme.DrawCard(g, _logCardRect, TacticalTheme.CardSurface, TacticalTheme.BorderCrisp, S(8));
-
+            SkinPainter.DrawCard(g, _logCardRect, _skin, S(8));
             TextRenderer.DrawText(
                 g,
                 "ЖУРНАЛ ОПЕРАЦИЙ",
                 _fontSection,
                 new Point(_logCardRect.X + S(16), _logCardRect.Y + S(9)),
-                TacticalTheme.TextSecondary,
+                _skin.TextMuted,
                 TextFormatFlags.NoPrefix);
 
             Rectangle logInner = new Rectangle(
@@ -3074,25 +3114,16 @@ namespace FrontierTaleRuSetup
                 _logCardRect.Y + S(28),
                 _logCardRect.Width - S(24),
                 _logCardRect.Height - S(38));
-            TacticalTheme.DrawCard(g, logInner, TacticalTheme.RecessedBg, TacticalTheme.BorderLocked, S(5));
-        }
-
-        private void PaintFooter(Graphics g)
-        {
-            Rectangle leftFooter = new Rectangle(S(22), S(372), S(260), S(28));
-            TextRenderer.DrawText(
-                g,
-                "v1.3 · neoru-droid",
-                _fontSmall,
-                leftFooter,
-                TacticalTheme.TextDim,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
+            SkinPainter.DrawInputFrame(g, logInner, _skin, S(5));
         }
 
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
+                if (_bannerImg != null) { _bannerImg.Dispose(); _bannerImg = null; }
+                if (_logoImg != null) { _logoImg.Dispose(); _logoImg = null; }
+                if (_embeddedFontCollection != null) { _embeddedFontCollection.Dispose(); _embeddedFontCollection = null; }
                 if (_fontBrand != null) _fontBrand.Dispose();
                 if (_fontBadge != null) _fontBadge.Dispose();
                 if (_fontSub != null) _fontSub.Dispose();
